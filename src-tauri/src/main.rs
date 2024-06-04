@@ -1,13 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::sync::Arc;
 use error::CommandResult;
-use tauri::{plugin::TauriPlugin, LogicalSize, Manager, State, Wry};
-use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut};
+use std::sync::Arc;
+use tauri::{LogicalSize, Manager, State};
 use translator::Translator;
 
 mod error;
+mod shortcut;
 mod translator;
 
 #[tauri::command]
@@ -33,32 +33,9 @@ async fn translate(
     }
 }
 
-fn shortcut_plugin() -> TauriPlugin<Wry> {
-    tauri_plugin_global_shortcut::Builder::new()
-        .with_shortcut(Shortcut::new(
-            Some(Modifiers::CONTROL | Modifiers::ALT),
-            Code::CapsLock,
-        ))
-        .unwrap()
-        .with_handler(move |app_handle, _shortcut, _event| {
-            let translator = Arc::clone(&app_handle.state::<Arc<Translator>>());
-            tauri::async_runtime::spawn(async move {
-                let select_text = selection::get_text();
-                let result = translator
-                    .translate("en", "zh", select_text.as_str())
-                    .await
-                    .unwrap();
-                println!("{:?}", result);
-            });
-        })
-        .build()
-}
-
 fn setup_hook(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    // 创建一个线程监听键盘事件
-    // Create a thread to listen to keyboard events
     let app_handle = app.handle();
-    app_handle.plugin(shortcut_plugin())?;
+    app_handle.plugin(shortcut::plugin())?;
 
     let panel = app
         .get_webview_window("panel")
