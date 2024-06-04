@@ -21,6 +21,7 @@ regex = "1.10.4"
 anyhow = "1.0"
 arboard = "3.4.0"
 selection = "1.2.0"
+rdev = "0.5.3"
 
 # [profile.release]
 # strip = true      # Automatically strip symbols from the binary.

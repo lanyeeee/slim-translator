@@ -12,8 +12,12 @@
     "windows": [
       {
         "title": "slim-translator",
+        "label": "panel",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "shadow": true
       }
     ],
     "security": {
