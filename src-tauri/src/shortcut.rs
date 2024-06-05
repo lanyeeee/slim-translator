@@ -9,17 +9,23 @@ use tauri::{
     async_runtime::Mutex, plugin::TauriPlugin, AppHandle, Manager, PhysicalPosition, WebviewWindow,
     Wry,
 };
-use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
+use tauri_plugin_global_shortcut::{Code, Shortcut, ShortcutState};
 
 pub fn plugin() -> TauriPlugin<Wry> {
+    // 因为with_handler的闭包要求是Fn，而不是FnMut，所以需要使用Mutex包裹变量
+    // Because the closure of with_handler requires Fn, not FnMut, so you need to use Mutex to wrap the variable
     let caps_lock_last_press_time = std::sync::Mutex::new(Instant::now());
     let caps_lock_pressed_once = std::sync::Mutex::new(false);
     let double_press_threshold = Duration::from_millis(500);
+
     tauri_plugin_global_shortcut::Builder::new()
-        .with_shortcut(Shortcut::new(None, Code::CapsLock))
+        .with_shortcuts([
+            Shortcut::new(None, Code::CapsLock),
+            Shortcut::new(None, Code::Escape),
+        ])
         .expect("failed to create shortcut")
-        .with_handler(move |app_handle, _shortcut, event| {
-            if event.state == ShortcutState::Pressed {
+        .with_handler(move |app_handle, shortcut, event| match shortcut.key {
+            Code::CapsLock if event.state == ShortcutState::Released => {
                 let mut caps_lock_last_press_time = caps_lock_last_press_time.lock().unwrap();
                 let mut caps_lock_pressed_once = caps_lock_pressed_once.lock().unwrap();
                 let now = Instant::now();
@@ -33,6 +39,14 @@ pub fn plugin() -> TauriPlugin<Wry> {
                     *caps_lock_pressed_once = true;
                 }
             }
+
+            Code::Escape if event.state == ShortcutState::Released => {
+                let panel = app_handle
+                    .get_webview_window("panel")
+                    .expect("failed to get panel window");
+                panel.hide().unwrap();
+            }
+            _ => {}
         })
         .build()
 }
