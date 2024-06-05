@@ -38,14 +38,6 @@ fn setup_hook(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let app_handle = app.handle();
     app_handle.plugin(shortcut::plugin())?;
 
-    let panel = app
-        .get_webview_window("panel")
-        .expect("failed to get panel window");
-    panel.set_size(LogicalSize {
-        width: 400,
-        height: 200,
-    })?;
-
     Ok(())
 }
 

@@ -28,6 +28,7 @@ fn callback(app_handle: &AppHandle) -> anyhow::Result<()> {
     // Get the text selected by the user, if there is no selected text, return directly
     let selected_text = get_selected_text().unwrap();
     if selected_text.is_empty() {
+        println!("No text selected");
         return Ok(());
     }
 
