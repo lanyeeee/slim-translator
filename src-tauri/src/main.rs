@@ -1,15 +1,10 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{
-    sync::Arc,
-    thread::spawn,
-    time::{Duration, Instant},
-};
-
+use std::sync::Arc;
 use error::CommandResult;
-use rdev::{EventType, Key};
-use tauri::{async_runtime, LogicalSize, Manager, State};
+use tauri::{plugin::TauriPlugin, LogicalSize, Manager, State, Wry};
+use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut};
 use translator::Translator;
 
 mod error;
@@ -38,55 +33,32 @@ async fn translate(
     }
 }
 
-fn register_hotkey(app_handle: &tauri::AppHandle) {
-    let translator = Arc::clone(&app_handle.state::<Arc<Translator>>());
-    spawn(move || {
-        let mut last_press_time = Instant::now();
-        let mut pressed_once = false;
-        let double_press_threshold = Duration::from_millis(500);
-        rdev::listen(move |event| match event.event_type {
-            // 处理按键按下事件
-            // Handle key press events
-            EventType::KeyPress(key) => {
-                // TODO: 改成可配置的快捷键
-                if key != Key::CapsLock {
-                    return;
-                }
-
-                let now = Instant::now();
-                let duration = now.duration_since(last_press_time);
-
-                if pressed_once && duration < double_press_threshold {
-                    let translator = Arc::clone(&translator);
-                    tauri::async_runtime::spawn(async move {
-                        let select_text = selection::get_text();
-                        let result = translator
-                            .translate("en", "zh", select_text.as_str())
-                            .await
-                            .unwrap();
-                        println!("{:?}", result);
-                    });
-
-                    pressed_once = false;
-                } else {
-                    last_press_time = now;
-                    pressed_once = true;
-                }
-            }
-            // 忽略其他事件
-            // Ignore other events
-            _ => {}
+fn shortcut_plugin() -> TauriPlugin<Wry> {
+    tauri_plugin_global_shortcut::Builder::new()
+        .with_shortcut(Shortcut::new(
+            Some(Modifiers::CONTROL | Modifiers::ALT),
+            Code::CapsLock,
+        ))
+        .unwrap()
+        .with_handler(move |app_handle, _shortcut, _event| {
+            let translator = Arc::clone(&app_handle.state::<Arc<Translator>>());
+            tauri::async_runtime::spawn(async move {
+                let select_text = selection::get_text();
+                let result = translator
+                    .translate("en", "zh", select_text.as_str())
+                    .await
+                    .unwrap();
+                println!("{:?}", result);
+            });
         })
-        .expect("failed to listen to events");
-    });
+        .build()
 }
 
 fn setup_hook(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // 创建一个线程监听键盘事件
     // Create a thread to listen to keyboard events
     let app_handle = app.handle();
-
-    register_hotkey(app_handle);
+    app_handle.plugin(shortcut_plugin())?;
 
     let panel = app
         .get_webview_window("panel")
