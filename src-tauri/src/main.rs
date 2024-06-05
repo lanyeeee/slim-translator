@@ -3,9 +3,10 @@
 
 use error::CommandResult;
 use std::sync::Arc;
-use tauri::{LogicalSize, Manager, State};
+use tauri::{async_runtime::RwLock, LogicalSize, Manager, State};
 use translator::Translator;
 
+mod config;
 mod error;
 mod shortcut;
 mod translator;
@@ -49,8 +50,12 @@ fn setup_hook(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() {
+    let translator = Arc::new(Translator::new());
+    let config = Arc::new(RwLock::new(config::Config::new()));
+
     tauri::Builder::default()
-        .manage(Arc::new(translator::Translator::new()))
+        .manage(translator)
+        .manage(config)
         .setup(setup_hook)
         .invoke_handler(tauri::generate_handler![greet, translate])
         .run(tauri::generate_context!())

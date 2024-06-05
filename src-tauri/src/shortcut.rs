@@ -2,7 +2,10 @@ use crate::translator::Translator;
 use get_selected_text::get_selected_text;
 use mouse_position::mouse_position::Mouse;
 use std::sync::Arc;
-use tauri::{plugin::TauriPlugin, AppHandle, Manager, PhysicalPosition, WebviewWindow, Wry};
+use tauri::{
+    async_runtime::RwLock, plugin::TauriPlugin, AppHandle, Manager, PhysicalPosition,
+    WebviewWindow, Wry,
+};
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 
 pub fn plugin() -> TauriPlugin<Wry> {
@@ -27,7 +30,6 @@ fn callback(app_handle: &AppHandle) -> anyhow::Result<()> {
     if selected_text.is_empty() {
         return Ok(());
     }
-    println!("{}", selected_text);
 
     let panel = app_handle
         .get_webview_window("panel")
@@ -36,11 +38,16 @@ fn callback(app_handle: &AppHandle) -> anyhow::Result<()> {
     show_panel(&panel)?;
 
     let translator = Arc::clone(&app_handle.state::<Arc<Translator>>());
+    let config = Arc::clone(&app_handle.state::<Arc<RwLock<crate::config::Config>>>());
     tauri::async_runtime::spawn(async move {
-        let result = translator
-            .translate("en", "zh", selected_text.as_str())
-            .await?;
-        panel.emit::<String>("translate", result.into())?;
+        let config = config.read().await;
+        let from = &config.from;
+        let to = &config.to;
+        let selected_text = selected_text.as_str();
+
+        let result = translator.translate(from, to, selected_text).await?;
+        println!("{}", result);
+        panel.emit("translate", result)?;
 
         Ok::<(), anyhow::Error>(())
     });
