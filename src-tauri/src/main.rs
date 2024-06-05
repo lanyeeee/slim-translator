@@ -36,10 +36,10 @@ async fn translate(
 
 fn setup_hook(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let app_handle = app.handle();
-    app_handle.plugin(shortcut::plugin())?;
-
+    
+    shortcut::init(app_handle)?;
+    
     let panel = app_handle.get_webview_window("panel").unwrap();
-
     // 当用户点击面板外部时，隐藏面板
     // Hide the panel when the user clicks outside the panel
     let panel_clone = panel.clone();

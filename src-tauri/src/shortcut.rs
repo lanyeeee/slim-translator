@@ -1,54 +1,64 @@
 use crate::translator::Translator;
 use get_selected_text::get_selected_text;
 use mouse_position::mouse_position::Mouse;
+use rdev::{EventType, Key};
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tauri::{
-    async_runtime::Mutex, plugin::TauriPlugin, AppHandle, Manager, PhysicalPosition, WebviewWindow,
-    Wry,
-};
-use tauri_plugin_global_shortcut::{Code, Shortcut, ShortcutState};
+use tauri::{async_runtime::Mutex, AppHandle, Manager, PhysicalPosition, WebviewWindow};
 
-pub fn plugin() -> TauriPlugin<Wry> {
-    // 因为with_handler的闭包要求是Fn，而不是FnMut，所以需要使用Mutex包裹变量
-    // Because the closure of with_handler requires Fn, not FnMut, so you need to use Mutex to wrap the variable
-    let caps_lock_last_press_time = std::sync::Mutex::new(Instant::now());
-    let caps_lock_pressed_once = std::sync::Mutex::new(false);
-    let double_press_threshold = Duration::from_millis(500);
+pub fn init(app_handle: &AppHandle) -> anyhow::Result<()> {
+    let app_handle = app_handle.clone();
+    std::thread::spawn(move || {
+        let mut ctrl_pressed = false; // 添加一个标志来跟踪 Ctrl 键是否被按下
+        let mut caps_lock_last_press_time = Instant::now();
+        let mut caps_lock_pressed_once = false;
+        let double_press_threshold = Duration::from_millis(500);
 
-    tauri_plugin_global_shortcut::Builder::new()
-        .with_shortcuts([
-            Shortcut::new(None, Code::CapsLock),
-            Shortcut::new(None, Code::Escape),
-        ])
-        .expect("failed to create shortcut")
-        .with_handler(move |app_handle, shortcut, event| match shortcut.key {
-            Code::CapsLock if event.state == ShortcutState::Released => {
-                let mut caps_lock_last_press_time = caps_lock_last_press_time.lock().unwrap();
-                let mut caps_lock_pressed_once = caps_lock_pressed_once.lock().unwrap();
-                let now = Instant::now();
-                let duration = now.duration_since(*caps_lock_last_press_time);
-
-                if *caps_lock_pressed_once && duration < double_press_threshold {
-                    double_pressed_caps_lock_callback(app_handle).unwrap();
-                    *caps_lock_pressed_once = false;
-                } else {
-                    *caps_lock_last_press_time = now;
-                    *caps_lock_pressed_once = true;
+        rdev::listen(move |event| match event.event_type {
+            // 处理按键按下事件
+            // Handle key press events
+            EventType::KeyPress(key) => match key {
+                Key::ControlLeft | Key::ControlRight => {
+                    ctrl_pressed = true;
                 }
-            }
+                Key::CapsLock if ctrl_pressed => {
+                    let now = Instant::now();
+                    let duration = now.duration_since(caps_lock_last_press_time);
 
-            Code::Escape if event.state == ShortcutState::Released => {
-                let panel = app_handle
-                    .get_webview_window("panel")
-                    .expect("failed to get panel window");
-                panel.hide().unwrap();
-            }
+                    if caps_lock_pressed_once && duration < double_press_threshold {
+                        double_pressed_caps_lock_callback(&app_handle).unwrap();
+
+                        caps_lock_pressed_once = false;
+                    } else {
+                        caps_lock_last_press_time = now;
+                        caps_lock_pressed_once = true;
+                    }
+                }
+                // TODO:把这个快捷键移到前端
+                Key::Escape => {
+                    let panel = app_handle
+                        .get_webview_window("panel")
+                        .expect("failed to get panel window");
+                    panel.hide().unwrap();
+                }
+                _ => {}
+            },
+            EventType::KeyRelease(key) => match key {
+                Key::ControlLeft | Key::ControlRight => {
+                    ctrl_pressed = false;
+                }
+                _ => {}
+            },
+            // 忽略其他事件
+            // Ignore other events
             _ => {}
         })
-        .build()
+        .expect("failed to listen to events");
+    });
+
+    Ok(())
 }
 
 fn double_pressed_caps_lock_callback(app_handle: &AppHandle) -> anyhow::Result<()> {
@@ -102,6 +112,8 @@ fn show_panel(panel: &WebviewWindow) -> anyhow::Result<()> {
     panel.set_position(PhysicalPosition { x, y })?;
     panel.show()?;
     panel.set_focus()?;
+
+    panel.emit("translate", "翻译中...")?;
 
     Ok(())
 }
