@@ -8,17 +8,14 @@ onMounted(async () => {
   await listen<string>("translate", (event) => {
     result.value = event.payload
   });
-
-
 });
 
 </script>
 
 <template>
-  <div class="h-full w-full min-h-screen flex bg" >
+  <div class="h-full w-full min-h-screen flex">
     <div class="flex-1 p-2 m-2  bg-blueGray" data-tauri-drag-region>
-      <p class="w-full whitespace-pre-line m-0 bg-white">{{ result }}</p>
-
+      <span class="w-full whitespace-pre-line m-0 bg-white">{{ result }}</span>
     </div>
   </div>
 </template>
