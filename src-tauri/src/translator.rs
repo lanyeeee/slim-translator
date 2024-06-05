@@ -16,6 +16,14 @@ impl Translator {
     }
 
     pub async fn translate(&self, from: &str, to: &str, content: &str) -> anyhow::Result<String> {
+        let detected_from;
+        let from = if from == "auto" {
+            detected_from = self.detect_language(content).await?;
+            detected_from.as_str()
+        } else {
+            from
+        };
+
         let payload = json!({
             "query": content,
             "from": from,
@@ -28,8 +36,6 @@ impl Translator {
             "milliTimestamp": SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis()
         });
 
-        println!("{:?}", payload);
-
         let resp = self
             .http_client
             .post("https://fanyi.baidu.com/ait/text/translate")
@@ -38,8 +44,6 @@ impl Translator {
             .await?;
         let status_code = resp.status();
         let resp_body = resp.text().await?;
-
-        println!("{:?}", resp_body);
 
         if status_code != StatusCode::OK {
             return Err(anyhow::anyhow!(
@@ -59,7 +63,6 @@ impl Translator {
             ))?
             .as_str();
         let data: serde_json::Value = serde_json::from_str(data)?;
-        println!("{data}");
 
         let list = data["data"]["list"]
             .as_array()
