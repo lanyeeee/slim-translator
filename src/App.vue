@@ -15,7 +15,16 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container" style="height: 100vh; width: 100vh;" data-tauri-drag-region>
-    <p style="white-space: pre-wrap">{{ result }}</p>
+  <div class="h-full w-full min-h-screen flex bg" >
+    <div class="flex-1 p-2 m-2  bg-blueGray" data-tauri-drag-region>
+      <p class="w-full whitespace-pre-line m-0 bg-white">{{ result }}</p>
+
+    </div>
   </div>
 </template>
+
+<style>
+body {
+  margin: 0;
+}
+</style>
