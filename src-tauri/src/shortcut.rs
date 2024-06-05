@@ -32,7 +32,7 @@ pub fn plugin() -> TauriPlugin<Wry> {
                 let duration = now.duration_since(*caps_lock_last_press_time);
 
                 if *caps_lock_pressed_once && duration < double_press_threshold {
-                    callback(app_handle).unwrap();
+                    double_pressed_caps_lock_callback(app_handle).unwrap();
                     *caps_lock_pressed_once = false;
                 } else {
                     *caps_lock_last_press_time = now;
@@ -51,7 +51,7 @@ pub fn plugin() -> TauriPlugin<Wry> {
         .build()
 }
 
-fn callback(app_handle: &AppHandle) -> anyhow::Result<()> {
+fn double_pressed_caps_lock_callback(app_handle: &AppHandle) -> anyhow::Result<()> {
     // 获取用户选中的文本，如果没有选中的文本则直接返回
     // Get the text selected by the user, if there is no selected text, return directly
     let selected_text = get_selected_text().unwrap();
@@ -101,6 +101,7 @@ fn show_panel(panel: &WebviewWindow) -> anyhow::Result<()> {
 
     panel.set_position(PhysicalPosition { x, y })?;
     panel.show()?;
+    panel.set_focus()?;
 
     Ok(())
 }

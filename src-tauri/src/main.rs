@@ -3,7 +3,7 @@
 
 use error::CommandResult;
 use std::sync::Arc;
-use tauri::{async_runtime::Mutex, State};
+use tauri::{async_runtime::Mutex, Manager, State};
 use translator::Translator;
 
 mod config;
@@ -37,6 +37,15 @@ async fn translate(
 fn setup_hook(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let app_handle = app.handle();
     app_handle.plugin(shortcut::plugin())?;
+
+    let panel = app_handle.get_webview_window("panel").unwrap();
+
+    // 当用户点击面板外部时，隐藏面板
+    // Hide the panel when the user clicks outside the panel
+    let panel_clone = panel.clone();
+    panel.listen("tauri://blur", move |_| {
+        // panel_clone.hide().unwrap(); // Use the cloned panel inside the closure
+    });
 
     Ok(())
 }
