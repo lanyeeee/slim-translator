@@ -3,7 +3,7 @@
 
 use error::CommandResult;
 use std::sync::Arc;
-use tauri::{async_runtime::RwLock, LogicalSize, Manager, State};
+use tauri::{async_runtime::Mutex, State};
 use translator::Translator;
 
 mod config;
@@ -43,7 +43,7 @@ fn setup_hook(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
 fn main() {
     let translator = Arc::new(Translator::new());
-    let config = Arc::new(RwLock::new(config::Config::new()));
+    let config = Arc::new(Mutex::new(config::Config::new()));
 
     tauri::Builder::default()
         .manage(translator)

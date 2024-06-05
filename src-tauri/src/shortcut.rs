@@ -1,23 +1,37 @@
 use crate::translator::Translator;
 use get_selected_text::get_selected_text;
 use mouse_position::mouse_position::Mouse;
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tauri::{
-    async_runtime::RwLock, plugin::TauriPlugin, AppHandle, Manager, PhysicalPosition,
-    WebviewWindow, Wry,
+    async_runtime::Mutex, plugin::TauriPlugin, AppHandle, Manager, PhysicalPosition, WebviewWindow,
+    Wry,
 };
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 
 pub fn plugin() -> TauriPlugin<Wry> {
+    let caps_lock_last_press_time = std::sync::Mutex::new(Instant::now());
+    let caps_lock_pressed_once = std::sync::Mutex::new(false);
+    let double_press_threshold = Duration::from_millis(500);
     tauri_plugin_global_shortcut::Builder::new()
-        .with_shortcut(Shortcut::new(
-            Some(Modifiers::CONTROL | Modifiers::ALT),
-            Code::CapsLock,
-        ))
+        .with_shortcut(Shortcut::new(None, Code::CapsLock))
         .expect("failed to create shortcut")
         .with_handler(move |app_handle, _shortcut, event| {
             if event.state == ShortcutState::Pressed {
-                callback(app_handle).unwrap();
+                let mut caps_lock_last_press_time = caps_lock_last_press_time.lock().unwrap();
+                let mut caps_lock_pressed_once = caps_lock_pressed_once.lock().unwrap();
+                let now = Instant::now();
+                let duration = now.duration_since(*caps_lock_last_press_time);
+
+                if *caps_lock_pressed_once && duration < double_press_threshold {
+                    callback(app_handle).unwrap();
+                    *caps_lock_pressed_once = false;
+                } else {
+                    *caps_lock_last_press_time = now;
+                    *caps_lock_pressed_once = true;
+                }
             }
         })
         .build()
@@ -39,9 +53,9 @@ fn callback(app_handle: &AppHandle) -> anyhow::Result<()> {
     show_panel(&panel)?;
 
     let translator = Arc::clone(&app_handle.state::<Arc<Translator>>());
-    let config = Arc::clone(&app_handle.state::<Arc<RwLock<crate::config::Config>>>());
+    let config = Arc::clone(&app_handle.state::<Arc<Mutex<crate::config::Config>>>());
     tauri::async_runtime::spawn(async move {
-        let config = config.read().await;
+        let config = config.lock().await;
         let from = &config.from;
         let to = &config.to;
         let selected_text = selected_text.as_str();
