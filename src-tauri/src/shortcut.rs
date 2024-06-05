@@ -1,9 +1,9 @@
-use std::sync::Arc;
-
 use crate::translator::Translator;
+use get_selected_text::get_selected_text;
 use mouse_position::mouse_position::Mouse;
+use std::sync::Arc;
 use tauri::{plugin::TauriPlugin, AppHandle, Manager, PhysicalPosition, WebviewWindow, Wry};
-use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut};
+use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 
 pub fn plugin() -> TauriPlugin<Wry> {
     tauri_plugin_global_shortcut::Builder::new()
@@ -12,8 +12,10 @@ pub fn plugin() -> TauriPlugin<Wry> {
             Code::CapsLock,
         ))
         .expect("failed to create shortcut")
-        .with_handler(move |app_handle, _shortcut, _event| {
-            callback(app_handle).unwrap();
+        .with_handler(move |app_handle, _shortcut, event| {
+            if event.state == ShortcutState::Pressed {
+                callback(app_handle).unwrap();
+            }
         })
         .build()
 }
@@ -21,10 +23,11 @@ pub fn plugin() -> TauriPlugin<Wry> {
 fn callback(app_handle: &AppHandle) -> anyhow::Result<()> {
     // 获取用户选中的文本，如果没有选中的文本则直接返回
     // Get the text selected by the user, if there is no selected text, return directly
-    let select_text = selection::get_text();
-    if select_text.is_empty() {
+    let selected_text = get_selected_text().unwrap();
+    if selected_text.is_empty() {
         return Ok(());
     }
+    println!("{}", selected_text);
 
     let panel = app_handle
         .get_webview_window("panel")
@@ -35,7 +38,7 @@ fn callback(app_handle: &AppHandle) -> anyhow::Result<()> {
     let translator = Arc::clone(&app_handle.state::<Arc<Translator>>());
     tauri::async_runtime::spawn(async move {
         let result = translator
-            .translate("en", "zh", select_text.as_str())
+            .translate("en", "zh", selected_text.as_str())
             .await?;
         panel.emit::<String>("translate", result.into())?;
 
