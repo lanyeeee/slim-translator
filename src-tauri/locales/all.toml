@@ -6,3 +6,39 @@ zh-CN = "你好世界"
 [messages.hello]
 en = "Hello, %{name}"
 zh-CN = "你好，%{name}"
+
+[tray.exit]
+en = "Exit"
+zh-CN = "退出"
+
+[tray.about]
+en = "About"
+zh-CN = "关于"
+
+[tray.from]
+en = "From language"
+zh-CN = "从"
+
+[tray.to]
+en = "To language"
+zh-CN = "翻译成"
+
+[tray.en_lan]
+en = "English"
+zh-CN = "英文"
+
+[tray.zh_lan]
+en = "Chinese"
+zh-CN = "中文"
+
+[tray.jp_lan]
+en = "Japanese"
+zh-CN = "日文"
+
+[tray.kor_lan]
+en = "Korean"
+zh-CN = "韩文"
+
+[tray.auto_lan]
+en = "Auto detect"
+zh-CN = "自动检测"

@@ -2,9 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use error::CommandResult;
-use rust_i18n::{available_locales, set_locale, t};
 use std::sync::Arc;
-use sys_locale::get_locale;
 use tauri::{async_runtime::Mutex, State};
 use translator::Translator;
 
@@ -12,6 +10,7 @@ mod config;
 mod error;
 mod shortcut;
 mod translator;
+mod tray;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -40,21 +39,13 @@ fn setup_hook(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let app_handle = app.handle();
 
     shortcut::init(app_handle)?;
+    tray::init(app_handle)?;
 
     Ok(())
 }
 
 rust_i18n::i18n!("locales");
 fn main() {
-    let locale = get_locale().unwrap_or_else(|| String::from("en-US"));
-
-    rust_i18n::set_locale(&locale);
-    let s = t!("hello").to_string();
-    println!("{}", s);
-
-    // Use `available_locales!` method to get all available locales.
-    println!("{:?}", available_locales!());
-
     let translator = Arc::new(Translator::new());
     let config = Arc::new(Mutex::new(config::Config::new()));
 
