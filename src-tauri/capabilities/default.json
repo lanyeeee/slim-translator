@@ -2,7 +2,9 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["panel"],
+  "windows": [
+    "panel"
+  ],
   "permissions": [
     "path:default",
     "event:default",
@@ -13,6 +15,7 @@
     "menu:default",
     "tray:default",
     "shell:allow-open",
-    "window:allow-start-dragging"
+    "window:allow-start-dragging",
+    "window:allow-hide"
   ]
 }

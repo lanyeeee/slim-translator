@@ -36,13 +36,6 @@ pub fn init(app_handle: &AppHandle) -> anyhow::Result<()> {
                         caps_lock_pressed_once = true;
                     }
                 }
-                // TODO:把这个快捷键移到前端
-                Key::Escape => {
-                    let panel = app_handle
-                        .get_webview_window("panel")
-                        .expect("failed to get panel window");
-                    panel.hide().unwrap();
-                }
                 _ => {}
             },
             EventType::KeyRelease(key) => match key {
