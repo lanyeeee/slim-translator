@@ -1,7 +1,7 @@
 [package]
 name = "slim-translator"
 version = "0.0.0"
-description = "A Tauri App"
+description = "slim-translator"
 authors = ["you"]
 edition = "2021"
 

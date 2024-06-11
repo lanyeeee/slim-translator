@@ -16,7 +16,10 @@ export default defineConfig({
     theme: {
         colors: {
             // ...
-        }
+        },
+        fontFamily: {
+            LXGW: "LXGW WenKai Mono"
+        },
     },
     presets: [
         presetUno(),

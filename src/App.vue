@@ -38,12 +38,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full w-full min-h-screen">
-    <div class="flex-1 flex-col m-2  bg-blueGray" data-tauri-drag-region>
+  <div class="flex flex-col h-full w-full min-h-screen bg-#232628">
+    <div class="flex-1 flex-col m-2  bg-#393C3E" data-tauri-drag-region>
       <div class="flex justify-end" data-tauri-drag-region>
-        <img src="./assets/close.svg" alt="close" @click="hide" />
+        <img src="./assets/close.svg" alt="close" @click="hide"/>
       </div>
-      <span class="whitespace-pre-line m-0 bg-white">
+      <span class="result whitespace-pre-line m-0 bg-#393C3E c-white font-LXGW">
         {{ result }}
       </span>
     </div>
