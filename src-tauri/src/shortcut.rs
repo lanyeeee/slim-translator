@@ -2,6 +2,7 @@ use crate::translator::Translator;
 use get_selected_text::get_selected_text;
 use mouse_position::mouse_position::Mouse;
 use rdev::{EventType, Key};
+use rust_i18n::t;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
@@ -77,9 +78,23 @@ fn double_pressed_caps_lock_callback(app_handle: &AppHandle) -> anyhow::Result<(
         let to = &config.to;
         let selected_text = selected_text.as_str();
 
-        let result = translator.translate(from, to, selected_text).await?;
-        println!("{}", result);
-        panel.emit("translate", result)?;
+        match translator.translate(from, to, selected_text).await {
+            Ok(deepl_result) => {
+                let translated_text = &deepl_result.texts[0];
+                let mut text = translated_text.text.clone();
+                if !translated_text.alternatives.is_empty() {
+                    let alternative_i18n = t!("translate.alternative");
+                    text += format!("\n\n====={alternative_i18n}=====\n").as_str();
+                    for alternative in translated_text.alternatives.iter() {
+                        text += format!("{}\n", alternative.text).as_str();
+                    }
+                }
+                panel.emit("translate", text)?;
+            }
+            Err(e) => {
+                panel.emit("translate", format!("translation failed: {}", e))?;
+            }
+        }
 
         Ok::<(), anyhow::Error>(())
     });

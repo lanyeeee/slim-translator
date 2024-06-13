@@ -3666,6 +3666,7 @@ dependencies = [
  "get-selected-text",
  "mouse_position",
  "open",
+ "rand 0.8.5",
  "rdev",
  "regex",
  "reqwest",

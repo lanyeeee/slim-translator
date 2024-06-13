@@ -1,12 +1,4 @@
 _version = 2
-[hello]
-en = "Hello world"
-zh-CN = "你好世界"
-
-[messages.hello]
-en = "Hello, %{name}"
-zh-CN = "你好，%{name}"
-
 [tray.exit]
 en = "Exit"
 zh-CN = "退出"
@@ -31,14 +23,18 @@ zh-CN = "英文"
 en = "Chinese"
 zh-CN = "中文"
 
-[tray.jp_lan]
+[tray.ja_lan]
 en = "Japanese"
 zh-CN = "日文"
 
-[tray.kor_lan]
+[tray.ko_lan]
 en = "Korean"
 zh-CN = "韩文"
 
 [tray.auto_lan]
 en = "Auto detect"
 zh-CN = "自动检测"
+
+[translate.alternative]
+en = "Alternative translation"
+zh-CN = "备选翻译"

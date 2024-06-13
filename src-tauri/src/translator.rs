@@ -1,11 +1,127 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    collections::HashMap,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
-use regex::Regex;
-use reqwest::StatusCode;
-use serde_json::json;
+use rand::Rng;
+use serde::{Deserialize, Serialize};
+use tauri::http::{HeaderMap, HeaderValue};
 
 pub struct Translator {
     http_client: reqwest::Client,
+}
+
+#[derive(Serialize, Debug)]
+struct Lang<'a> {
+    pub source_lang_user_selected: &'a str,
+    pub target_lang: &'a str,
+}
+
+#[derive(Serialize, Debug)]
+struct CommonJobParams<'a> {
+    pub was_spoken: bool,
+    pub transcribe_as: &'a str,
+}
+
+#[derive(Serialize, Debug)]
+struct Params<'a> {
+    pub texts: Vec<Text<'a>>,
+    pub splitting: &'a str,
+    pub lang: Lang<'a>,
+    pub timestamp: i64,
+    #[serde(rename = "commonJobParams")]
+    pub common_job_params: CommonJobParams<'a>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct Text<'a> {
+    pub text: &'a str,
+    #[serde(rename = "requestAlternatives")]
+    pub request_alternatives: i32,
+}
+
+#[derive(Serialize, Debug)]
+struct PostData<'a> {
+    pub jsonrpc: &'a str,
+    pub method: &'a str,
+    pub id: i64,
+    pub params: Params<'a>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct DeepLResponse {
+    pub jsonrpc: String,
+    pub id: i64,
+    pub result: DeeplResult,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct DeeplResult {
+    pub texts: Vec<TranslatedText>,
+    pub lang: String,
+    pub lang_is_confident: bool,
+    #[serde(rename = "detectedLanguages")]
+    pub detected_languages: HashMap<String, f64>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct TranslatedText {
+    pub alternatives: Vec<Alternative>,
+    pub text: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Alternative {
+    pub text: String,
+}
+
+fn get_i_count(translate_text: &str) -> i64 {
+    translate_text.matches('i').count() as i64
+}
+
+fn get_random_number() -> i64 {
+    let mut rng = rand::thread_rng();
+    (rng.gen_range(0..99999) + 8300000) * 1000
+}
+
+fn get_time_stamp(i_count: i64) -> i64 {
+    let start = SystemTime::now();
+    let since_the_epoch = start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
+    let ts = since_the_epoch.as_millis() as i64;
+
+    if i_count != 0 {
+        ts - ts % (i_count + 1) + (i_count + 1)
+    } else {
+        ts
+    }
+}
+
+fn create_post_data<'a>(id: i64, from: &'a str, to: &'a str, content: &'a str) -> PostData<'a> {
+    PostData {
+        jsonrpc: "2.0",
+        method: "LMT_handle_texts",
+        id: id,
+        params: Params {
+            texts: vec![
+                Text {
+                    text: content,
+                    request_alternatives: 3,
+                },
+            ],
+            splitting: "newlines",
+            lang: Lang {
+                source_lang_user_selected: from,
+                target_lang: to,
+            },
+            timestamp: get_time_stamp(get_i_count(content)),
+            common_job_params: CommonJobParams {
+                was_spoken: false,
+                transcribe_as: "",
+            },
+        },
+    }
 }
 
 impl Translator {
@@ -15,103 +131,56 @@ impl Translator {
         }
     }
 
-    pub async fn translate(&self, from: &str, to: &str, content: &str) -> anyhow::Result<String> {
-        let detected_from;
-        let from = if from == "auto" {
-            detected_from = self.detect_language(content).await?;
-            detected_from.as_str()
+    pub async fn translate(
+        &self,
+        from: &str,
+        to: &str,
+        content: &str,
+    ) -> anyhow::Result<DeeplResult> {
+        let id = get_random_number() + 1;
+        let post_data = create_post_data(id, from, to, content);
+
+        let mut post_str = serde_json::to_string(&post_data)?;
+        if (id + 5) % 29 == 0 || (id + 3) % 13 == 0 {
+            post_str = post_str.replace("\"method\":\"", "\"method\" : \"");
         } else {
-            from
-        };
+            post_str = post_str.replace("\"method\":\"", "\"method\": \"");
+        }
 
-        let payload = json!({
-            "query": content,
-            "from": from,
-            "to": to,
-            "reference": "",
-            "corpusIds": [],
-            "qcSettings": ["1","2","3","4","5","6","7","8","9","10","11"],
-            "needPhonetic": true,
-            "domain": "common",
-            "milliTimestamp": SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis()
-        });
+        let mut headers = HeaderMap::with_capacity(10);
+        let default_headers = [
+            ("Content-Type", "application/json"),
+            ("Accept", "*/*"),
+            ("x-app-os-name", "iOS"),
+            ("x-app-os-version", "16.3.0"),
+            ("Accept-Language", "en-US,en;q=0.9"),
+            ("x-app-device", "iPhone13,2"),
+            ("User-Agent", "DeepL-iOS/2.9.1 iOS 16.3.0 (iPhone13,2)"),
+            ("x-app-build", "510265"),
+            ("x-app-version", "2.9.1"),
+            ("Connection", "keep-alive"),
+        ];
+
+        for &(key, value) in &default_headers {
+            headers.insert(key, HeaderValue::from_static(value));
+        }
 
         let resp = self
             .http_client
-            .post("https://fanyi.baidu.com/ait/text/translate")
-            .json(&payload)
+            .post("https://www2.deepl.com/jsonrpc")
+            .headers(headers)
+            .body(post_str)
             .send()
             .await?;
-        let status_code = resp.status();
-        let resp_body = resp.text().await?;
-
-        if status_code != StatusCode::OK {
+        if resp.status() != 200 {
+            let status = resp.status();
+            let body = resp.text().await?;
             return Err(anyhow::anyhow!(
-                "Request failed with status code: {}\nresponse body:\n{}",
-                status_code,
-                resp_body
+                "Failed to get response from DeepL\nstatus code: {status}\nbody: {body}"
             ));
         }
 
-        // TODO: 可以用lazy优化
-        let re = Regex::new(r#"\{[^}]*"data":\{"event":"Translating".*\}\}"#)?;
-        let data = re
-            .find(&resp_body)
-            .ok_or(anyhow::anyhow!(
-                "Regex not match, response body:\n{}",
-                resp_body
-            ))?
-            .as_str();
-        let data: serde_json::Value = serde_json::from_str(data)?;
-
-        let list = data["data"]["list"]
-            .as_array()
-            .ok_or(anyhow::anyhow!("data.list not found in json:\n{}", data))?;
-
-        let mut result = "".to_string();
-        for item in list {
-            result += format!(
-                "{}\n",
-                item["dst"]
-                    .as_str()
-                    .ok_or(anyhow::anyhow!("dst not found in json:\n{}", item))?
-            )
-            .as_str();
-        }
-
-        Ok(result)
-    }
-
-    pub async fn detect_language(&self, content: &str) -> anyhow::Result<String> {
-        let payload = json!({
-            "query": content
-        });
-
-        let resp = self
-            .http_client
-            .post("https://fanyi.baidu.com/langdetect")
-            .form(&payload)
-            .send()
-            .await?;
-
-        let status_code = resp.status();
-        let resp_body = resp.text().await?;
-
-        if status_code != StatusCode::OK {
-            return Err(anyhow::anyhow!(
-                "Request failed with status code: {}\nresponse body:\n{}",
-                status_code,
-                resp_body
-            ));
-        }
-
-        let data: serde_json::Value = serde_json::from_str(&resp_body)?;
-
-        let lan = data["lan"]
-            .as_str()
-            .ok_or(anyhow::anyhow!("lan not found in json:\n{}", data))?
-            .to_string();
-
-        Ok(lan)
+        let deepl_resp = resp.json::<DeepLResponse>().await?;
+        Ok(deepl_resp.result)
     }
 }
