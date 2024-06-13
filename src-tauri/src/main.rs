@@ -28,6 +28,7 @@ fn main() {
     let config = Arc::new(Mutex::new(config::Config::new()));
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {}))
         .manage(translator)
         .manage(config)
         .setup(setup_hook)
