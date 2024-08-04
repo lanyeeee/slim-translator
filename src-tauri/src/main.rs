@@ -1,31 +1,12 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{AppHandle, Context, Wry};
+use tauri::{Context, Wry};
 
-use crate::config::Config;
+use crate::commands::{get_config, greet, save_config};
 
+mod commands;
 mod config;
-
-#[tauri::command]
-#[specta::specta]
-fn greet(name: &str) -> String {
-    format!("Hello, {name}! You've been greeted from Rust!")
-}
-
-#[tauri::command(async)]
-#[specta::specta]
-#[allow(clippy::needless_pass_by_value)]
-fn get_config(app: AppHandle) -> Config {
-    Config::load(&app).unwrap()
-}
-
-#[tauri::command(async)]
-#[specta::specta]
-#[allow(clippy::needless_pass_by_value)]
-fn save_config(app: AppHandle, config: Config) {
-    config.save(&app).unwrap();
-}
 
 fn generate_context() -> Context<Wry> {
     tauri::generate_context!()
