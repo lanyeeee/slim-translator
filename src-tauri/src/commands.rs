@@ -5,19 +5,22 @@ use crate::config::Config;
 
 #[tauri::command(async)]
 #[specta::specta]
-pub async fn greet(name: &str) -> Result<String, String> {
-    match crate::translate_without_api_key::translate("auto", "en", "今天的天气真不错").await
+pub async fn greet(app: AppHandle, name: &str) -> Result<String, String> {
+    let config = Config::load(&app).unwrap();
+    let api_key = config.api_key.unwrap();
+    match crate::translate_with_api_key::translate("auto", "en", "今天的天气真不错", &api_key).await
     {
         Ok(deepl_result) => {
-            let translated_text = &deepl_result.texts[0];
-            let mut text = translated_text.text.clone();
-            if !translated_text.alternatives.is_empty() {
+            let translated_text = &deepl_result.data;
+            let mut text = translated_text.clone();
+            if !deepl_result.alternatives.is_empty() {
                 let alternative_i18n = t!("translate.alternative");
                 text += format!("\n\n====={alternative_i18n}=====\n").as_str();
-                for alternative in &translated_text.alternatives {
+                for alternative in &deepl_result.alternatives {
                     text += format!("{}\n", alternative.text).as_str();
                 }
             }
+            println!("translated text: {}", text);
             Ok(text)
         }
         Err(e) => Err(format!("translation failed: {e}")),

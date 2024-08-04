@@ -1,5 +1,5 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use tauri::{Context, Wry};
 
@@ -9,6 +9,7 @@ mod commands;
 mod config;
 mod translate_without_api_key;
 mod tray;
+mod translate_with_api_key;
 
 fn generate_context() -> Context<Wry> {
     tauri::generate_context!()
