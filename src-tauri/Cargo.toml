@@ -11,7 +11,7 @@ edition = "2021"
 tauri-build = { version = "2.0.0-beta", features = [] }
 
 [dependencies]
-tauri = { version = "2.0.0-beta", features = [] }
+tauri = { version = "2.0.0-beta", features = ["tray-icon"] }
 tauri-plugin-shell = { version = "2.0.0-beta" }
 
 specta = { version = "=2.0.0-rc.12" }
@@ -22,6 +22,8 @@ serde_json = { version = "1" }
 
 anyhow = { version = "1" }
 sys-locale = { version = "0.3.1" }
+rust-i18n = { version = "3" }
+open = { version = "5.1.4" }
 
 [profile.release]
 strip = true      # Automatically strip symbols from the binary.

@@ -1,0 +1,32 @@
+_version = 2
+[tray.exit]
+en = "Exit"
+zh = "退出"
+
+[tray.about]
+en = "About"
+zh = "关于"
+
+[tray.from]
+en = "From language"
+zh = "从"
+
+[tray.to]
+en = "To language"
+zh = "翻译成"
+
+[tray.en_lan]
+en = "English"
+zh = "英文"
+
+[tray.zh_lan]
+en = "Chinese"
+zh = "中文"
+
+[tray.auto_lan]
+en = "Auto detect"
+zh = "自动检测"
+
+[translate.alternative]
+en = "Alternative translation"
+zh = "备选翻译"
