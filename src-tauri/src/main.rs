@@ -7,6 +7,7 @@ use crate::commands::{get_config, greet, save_config};
 
 mod commands;
 mod config;
+mod translate_without_api_key;
 mod tray;
 
 fn generate_context() -> Context<Wry> {

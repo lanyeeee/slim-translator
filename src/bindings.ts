@@ -4,8 +4,13 @@
          /** user-defined commands **/
 
          export const commands = {
-async greet(name: string) : Promise<string> {
-return await TAURI_INVOKE("greet", { name });
+async greet(name: string) : Promise<Result<string, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("greet", { name }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
 async getConfig() : Promise<Config> {
 return await TAURI_INVOKE("get_config");

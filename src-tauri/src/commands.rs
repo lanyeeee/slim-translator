@@ -1,11 +1,27 @@
+use rust_i18n::t;
 use tauri::AppHandle;
 
 use crate::config::Config;
 
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
-pub fn greet(name: &str) -> String {
-    format!("Hello, {name}! You've been greeted from Rust!")
+pub async fn greet(name: &str) -> Result<String, String> {
+    match crate::translate_without_api_key::translate("auto", "en", "今天的天气真不错").await
+    {
+        Ok(deepl_result) => {
+            let translated_text = &deepl_result.texts[0];
+            let mut text = translated_text.text.clone();
+            if !translated_text.alternatives.is_empty() {
+                let alternative_i18n = t!("translate.alternative");
+                text += format!("\n\n====={alternative_i18n}=====\n").as_str();
+                for alternative in &translated_text.alternatives {
+                    text += format!("{}\n", alternative.text).as_str();
+                }
+            }
+            Ok(text)
+        }
+        Err(e) => Err(format!("translation failed: {e}")),
+    }
 }
 
 #[tauri::command(async)]
