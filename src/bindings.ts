@@ -25,7 +25,11 @@ await TAURI_INVOKE("save_config", { config });
 
 /** user-defined types **/
 
-export type Config = { from: string; to: string; apiKey: string | null }
+export type Config = { from: string; to: string; apiKey: string | null; 
+/**
+ * BCP-47 language tag
+ */
+local: string }
 
 /** tauri-specta globals **/
 
