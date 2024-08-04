@@ -19,6 +19,7 @@ tauri-specta = { version = "=2.0.0-rc.11", features = ["typescript"] }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
+anyhow = { version = "1" }
 
 [profile.release]
 strip = true      # Automatically strip symbols from the binary.

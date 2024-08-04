@@ -6,6 +6,12 @@
          export const commands = {
 async greet(name: string) : Promise<string> {
 return await TAURI_INVOKE("greet", { name });
+},
+async getConfig() : Promise<Config> {
+return await TAURI_INVOKE("get_config");
+},
+async saveConfig(config: Config) : Promise<void> {
+await TAURI_INVOKE("save_config", { config });
 }
 }
 
@@ -19,7 +25,7 @@ return await TAURI_INVOKE("greet", { name });
 
 /** user-defined types **/
 
-
+export type Config = { from: string; to: string; apiKey: string | null }
 
 /** tauri-specta globals **/
 
