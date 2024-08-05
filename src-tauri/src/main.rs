@@ -38,6 +38,7 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {}))
         .invoke_handler(invoke_handler)
         .setup(|app| {
             register_events(app);
