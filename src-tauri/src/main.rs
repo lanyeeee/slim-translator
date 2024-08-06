@@ -7,9 +7,9 @@ use crate::commands::{get_config, greet, save_config};
 
 mod commands;
 mod config;
-mod translate_without_api_key;
 mod tray;
-mod translate_with_api_key;
+
+mod translate;
 
 fn generate_context() -> Context<Wry> {
     tauri::generate_context!()

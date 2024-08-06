@@ -5,20 +5,26 @@ use std::{
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tauri::http::{HeaderMap, HeaderValue};
 
+#[derive(Deserialize, Debug)]
+pub struct DeeplXResult {
+    pub code: i64,
+    pub id: i64,
+    pub data: String,
+    pub alternatives: Vec<Alternative>,
+}
 #[derive(Serialize, Debug)]
 struct Lang<'a> {
     pub source_lang_user_selected: &'a str,
     pub target_lang: &'a str,
 }
-
 #[derive(Serialize, Debug)]
 struct CommonJobParams<'a> {
     pub was_spoken: bool,
     pub transcribe_as: &'a str,
 }
-
 #[allow(clippy::struct_field_names)]
 #[derive(Serialize, Debug)]
 struct Params<'a> {
@@ -29,14 +35,12 @@ struct Params<'a> {
     #[serde(rename = "commonJobParams")]
     pub common_job_params: CommonJobParams<'a>,
 }
-
 #[derive(Deserialize, Serialize, Debug)]
 struct Text<'a> {
     pub text: &'a str,
     #[serde(rename = "requestAlternatives")]
     pub request_alternatives: i32,
 }
-
 #[derive(Serialize, Debug)]
 struct PostData<'a> {
     pub jsonrpc: &'a str,
@@ -44,14 +48,12 @@ struct PostData<'a> {
     pub id: i64,
     pub params: Params<'a>,
 }
-
 #[derive(Deserialize, Debug)]
 pub struct DeepLResponse {
     pub jsonrpc: String,
     pub id: i64,
     pub result: DeeplResult,
 }
-
 #[derive(Deserialize, Debug)]
 pub struct DeeplResult {
     pub texts: Vec<TranslatedText>,
@@ -60,19 +62,46 @@ pub struct DeeplResult {
     #[serde(rename = "detectedLanguages")]
     pub detected_languages: HashMap<String, f64>,
 }
-
 #[derive(Deserialize, Debug)]
 pub struct TranslatedText {
     pub alternatives: Vec<Alternative>,
     pub text: String,
 }
-
 #[derive(Deserialize, Debug)]
 pub struct Alternative {
     pub text: String,
 }
 
-pub async fn translate(from: &str, to: &str, content: &str) -> anyhow::Result<DeeplResult> {
+pub async fn with_api_key(
+    from: &str,
+    to: &str,
+    content: &str,
+    api_key: &str,
+) -> anyhow::Result<DeeplXResult> {
+    let post_str = json!({
+      "text": content,
+      "source_lang": from,
+      "target_lang": to
+    })
+    .to_string();
+
+    let resp = reqwest::Client::new()
+        .post(format!("https://api.deeplx.org/{api_key}/translate"))
+        .body(post_str)
+        .send()
+        .await?;
+    if resp.status() != 200 {
+        let status = resp.status();
+        let body = resp.text().await?;
+        return Err(anyhow::anyhow!(
+            "Failed to get response from DeepL\nstatus code: {status}\nbody: {body}"
+        ));
+    }
+    let deepl_x_res = resp.json::<DeeplXResult>().await?;
+    Ok(deepl_x_res)
+}
+
+pub async fn without_api_key(from: &str, to: &str, content: &str) -> anyhow::Result<DeeplResult> {
     let id = get_random_number() + 1;
     let post_data = create_post_data(id, from, to, content);
 

@@ -8,7 +8,7 @@ use crate::config::Config;
 pub async fn greet(app: AppHandle, name: &str) -> Result<String, String> {
     let config = Config::load(&app).unwrap();
     let api_key = config.api_key.unwrap();
-    match crate::translate_with_api_key::translate("auto", "en", "今天的天气真不错", &api_key).await
+    match crate::translate::with_api_key("auto", "en", "今天的天气真不错", &api_key).await
     {
         Ok(deepl_result) => {
             let translated_text = &deepl_result.data;
